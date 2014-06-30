@@ -48,9 +48,35 @@ extern YYSTYPE cool_yylval;
 /*
  * Define names for regular expressions here.
  */
-
+CLASS		class
+ELSE		else
+FI		fi
+IF		if
+IN		in
+INHERITS	inherits
+LET		let
+LOOP		loop
+POOL		pool
+THEN		then
+WHILE		while
+CASE		case
+ESAC		esac
+OF		of
 DARROW          =>
+NEW		new
+ISVOID		isvoid
+STR_CONST	"[0-9a-zA-Z\/.- \b\t\n\f]+"		
+INT_CONST	[0-9]+
+BOOL_CONST	true|false
+TYPEID		
+OBJECTID
+ASSIGN		<-
+NOT		not
+LE		<=
+ERROR
+LET_STMT
 
+WHITE		[ \t\n\f\r\v]+
 %%
 
  /*
