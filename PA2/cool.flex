@@ -42,7 +42,8 @@ extern YYSTYPE cool_yylval;
 /*
  *  Add Your own definitions here
  */
-
+static void comment(void);
+int commentDepth = 0;
 %}
 
 /*
@@ -59,31 +60,37 @@ WS  [ \t\v\n\f\r]
 STR_CONST       "{L}({A}|{WS}*)"
 INT_CONST       0|{NZ}{D}*
 BOOL_CONST      true|false
-TYPEID          ({SL}|_){A}*
-OBJECTID        {CL}{A}*    /*Int|String|SELF_TYPE*/
+TYPEID          {CL}{A}*
+OBJECTID        ({SL}|_){A}*    /*Int|String|SELF_TYPE*/
 
-DARROW          =>
-ASSIGN		      <-
-LE		          <=
-
+DARROW  =>
+ASSIGN	<-
+LE		<=
+%x		COMMENT
 %%
 
  /*
   *  Nested comments
   */
-"/*"        { comment(); }
-"//".*      { /* consume //commnet */ }
+<INITIAL,COMMENT>"(*"        { BEGIN(COMMENT);commentDepth++; }
+"--".*      { /* consume //commnet */ }
+<COMMENT>"*)" { 
+	commentDepth--;
+	if(commentDepth == 0)
+		BEGIN(INITIAL); 
+}
+<COMMENT>. { /* do nothing */ }
 
  /*
   *  The multiple-character operators.
   */
-{DARROW}		{ return (DARROW); }
+{DARROW}    { return (DARROW); }
 {LE}        { return (LE); }
 {ASSIGN}    { return (ASSIGN); }
 
-/*
- *  may not neccessary
- */
+ /*
+  *  may not neccessary
+  */
 ";"         { return ';'; }
 ("{")       { return '{'; }
 ("}")       { return '}'; }
@@ -108,6 +115,7 @@ LE		          <=
 "^"         { return '^'; }
 "|"         { return '|'; }
 "?"         { return '?'; }
+\n			{ ++curr_lineno; }
 
  /*
   * Keywords are case-insensitive except for the values true and false,
@@ -116,7 +124,7 @@ LE		          <=
 "class"     { return (CLASS); }
 "else"      { return (ELSE); }
 "fi"        { return (FI); }
-"if"        { return (IF) }
+"if"        { return (IF); }
 "in"        { return (IN); }
 "inherits"  { return (INHERITS); }
 "let"       { return (LET); }
@@ -145,9 +153,9 @@ LE		          <=
 static void comment(void)
 {
   int c;
-  while( (c = input()) != 0 ) {
+  while( (c = yylex()) != 0 ) {
     if( c == '*'){
-      while( (c = input()) == '*' ) ;
+      while( (c = yylex()) == '*' ) ;
       if (c == '/')
         return;
       if (c == 0)
@@ -157,4 +165,5 @@ static void comment(void)
   }
   //deal with error 
   //return (ERROR);
+  cool_yylval.error_msg = "EOF in comment";
 }
