@@ -48,52 +48,88 @@ extern YYSTYPE cool_yylval;
 /*
  * Define names for regular expressions here.
  */
-CLASS		class
-ELSE		else
-FI		fi
-IF		if
-IN		in
-INHERITS	inherits
-LET		let
-LOOP		loop
-POOL		pool
-THEN		then
-WHILE		while
-CASE		case
-ESAC		esac
-OF		of
-DARROW          =>
-NEW		new
-ISVOID		isvoid
-STR_CONST	"[0-9a-zA-Z\/.- \b\t\n\f]+"		
-INT_CONST	[0-9]+
-BOOL_CONST	true|false
-TYPEID		
-OBJECTID
-ASSIGN		<-
-NOT		not
-LE		<=
-ERROR
-LET_STMT
+D   [0-9]
+NZ  [1-9]
+SL  [a-z]
+CL  [A-Z]  
+L   [a-zA-Z_]
+A   [a-zA-Z_0-9]
+WS  [ \t\v\n\f\r]
 
-WHITE		[ \t\n\f\r\v]+
+STR_CONST       "{L}({A}|{WS}*)"
+INT_CONST       0|{NZ}{D}*
+BOOL_CONST      true|false
+TYPEID          ({SL}|_){A}*
+OBJECTID        {CL}{A}*    /*Int|String|SELF_TYPE*/
+
+DARROW          =>
+ASSIGN		      <-
+LE		          <=
+
 %%
 
  /*
   *  Nested comments
   */
-
+"/*"        { comment(); }
+"//".*      { /* consume //commnet */ }
 
  /*
   *  The multiple-character operators.
   */
 {DARROW}		{ return (DARROW); }
+{LE}        { return (LE); }
+{ASSIGN}    { return (ASSIGN); }
+
+/*
+ *  may not neccessary
+ */
+";"         { return ';'; }
+("{")       { return '{'; }
+("}")       { return '}'; }
+","         { return ','; }
+":"         { return ':'; }
+"="         { return '='; }
+"("         { return '('; }
+")"         { return ')'; }
+"["         { return '['; }
+"]"         { return ']'; }
+"."         { return '.'; }
+"&"         { return '&'; }
+"!"         { return '!'; }
+"~"         { return '~'; }
+"-"         { return '-'; }
+"+"         { return '+'; }
+"*"         { return '*'; }
+"/"         { return '/'; }
+"%"         { return '%'; }
+"<"         { return '<'; }
+">"         { return '>'; }
+"^"         { return '^'; }
+"|"         { return '|'; }
+"?"         { return '?'; }
 
  /*
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
   */
-
+"class"     { return (CLASS); }
+"else"      { return (ELSE); }
+"fi"        { return (FI); }
+"if"        { return (IF) }
+"in"        { return (IN); }
+"inherits"  { return (INHERITS); }
+"let"       { return (LET); }
+"loop"      { return (LOOP); }
+"pool"      { return (POOL); }
+"then"      { return (THEN); }
+"while"     { return (WHILE); }
+"case"      { return (CASE); }
+"esac"      { return (ESAC); }
+"of"        { return (OF); }
+"new"       { return (NEW); }
+"isvoid"    { return (ISVOID); }
+"not"       { return (NOT); }
 
  /*
   *  String constants (C syntax)
@@ -102,5 +138,23 @@ WHITE		[ \t\n\f\r\v]+
   *
   */
 
+{WS}        { /*do nothing*/ }
 
 %%
+
+static void comment(void)
+{
+  int c;
+  while( (c = input()) != 0 ) {
+    if( c == '*'){
+      while( (c = input()) == '*' ) ;
+      if (c == '/')
+        return;
+      if (c == 0)
+        break;
+      
+    }
+  }
+  //deal with error 
+  //return (ERROR);
+}
