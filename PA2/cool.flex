@@ -49,36 +49,46 @@ int commentDepth = 0;
 /*
  * Define names for regular expressions here.
  */
-D   [0-9]
-NZ  [1-9]
-SL  [a-z]
-CL  [A-Z]  
-L   [a-zA-Z_]
-A   [a-zA-Z_0-9]
-WS  [ \t\v\n\f\r]
+D   			[0-9]
+NZ  			[1-9]
+SL  			[a-z]
+CL  			[A-Z]  
+L   			[a-zA-Z_]
+A   			[a-zA-Z_0-9]
+WS  			[ \t\v\n\f\r]
+TRUE 			t(?i:rue)
+FALSE 			f(?i:alse)
 
 STR_CONST       "{L}({A}|{WS}*)"
 INT_CONST       0|{NZ}{D}*
-BOOL_CONST      true|false
 TYPEID          {CL}{A}*
-OBJECTID        ({SL}|_){A}*    /*Int|String|SELF_TYPE*/
+OBJECTID        ({SL}|_){A}*
 
-DARROW  =>
-ASSIGN	<-
-LE		<=
-%x		COMMENT
+DARROW  		=>
+ASSIGN			<-
+LE				<=
+%x				COMMENT
 %%
+{INT_CONST}		{ cool_yylval.symbol = inttable.add_string(yytext); return (INT_CONST); }
+{TRUE}			{ cool_yylval.boolean = 1; return (BOOL_CONST); }
+{FALSE}			{ cool_yylval.boolean = 0; return (BOOL_CONST); }
 
  /*
   *  Nested comments
   */
-<INITIAL,COMMENT>"(*"        { BEGIN(COMMENT);commentDepth++; }
+<INITIAL,COMMENT>"(*"		{ BEGIN(COMMENT); commentDepth++; }
 "--".*      { /* consume //commnet */ }
-<COMMENT>"*)" { 
+
+<INITIAL,COMMENT>"*)" { 
 	commentDepth--;
-	if(commentDepth == 0)
-		BEGIN(INITIAL); 
+	if(commentDepth == 0) {
+		BEGIN(INITIAL);
+	} else if(commentDepth < 0){
+		cool_yylval.error_msg="Unmatched *)";
+		return (ERROR);
+	} 
 }
+<COMMENT><<EOF>>	{ cool_yylval.error_msg="EOF in comment"; return (ERROR); }
 <COMMENT>. { /* do nothing */ }
 
  /*
@@ -92,8 +102,8 @@ LE		<=
   *  may not neccessary
   */
 ";"         { return ';'; }
-("{")       { return '{'; }
-("}")       { return '}'; }
+"{"         { return '{'; }
+"}"         { return '}'; }
 ","         { return ','; }
 ":"         { return ':'; }
 "="         { return '='; }
@@ -121,6 +131,7 @@ LE		<=
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
   */
+
 "class"     { return (CLASS); }
 "else"      { return (ELSE); }
 "fi"        { return (FI); }
@@ -139,13 +150,14 @@ LE		<=
 "isvoid"    { return (ISVOID); }
 "not"       { return (NOT); }
 
+{TYPEID}		{ cool_yylval.symbol = idtable.add_string(yytext); return (TYPEID); }
+{OBJECTID}		{ cool_yylval.symbol = idtable.add_string(yytext); return (OBJECTID); }
  /*
   *  String constants (C syntax)
   *  Escape sequence \c is accepted for all characters c. Except for 
   *  \n \t \b \f, the result is c.
   *
   */
-
 {WS}        { /*do nothing*/ }
 
 %%

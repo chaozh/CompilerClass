@@ -1,7 +1,9 @@
-class B inherts A{
-	(* comment test
- 	  comment test
- 	 *)
-	a:Int;
+(*
+	test for comment
+	"(* *)" *) (*
+*)
+-- this is test comment
+class A : inherits B {
+	a:Int <- 3;
+	b:String <- "hello world";
 }
-=>
