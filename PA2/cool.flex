@@ -44,6 +44,7 @@ extern YYSTYPE cool_yylval;
  */
 static void comment(void);
 int commentDepth = 0;
+int stringStart = 0;
 %}
 
 /*
@@ -68,6 +69,7 @@ DARROW  		=>
 ASSIGN			<-
 LE				<=
 %x				COMMENT
+%x				STRING
 %%
 {INT_CONST}		{ cool_yylval.symbol = inttable.add_string(yytext); return (INT_CONST); }
 {TRUE}			{ cool_yylval.boolean = 1; return (BOOL_CONST); }
@@ -88,7 +90,7 @@ LE				<=
 		return (ERROR);
 	} 
 }
-<COMMENT><<EOF>>	{ cool_yylval.error_msg="EOF in comment"; return (ERROR); }
+<COMMENT><<EOF>>	{ BEGIN(INITIAL); cool_yylval.error_msg="EOF in comment"; return (ERROR); }
 <COMMENT>. { /* do nothing */ }
 
  /*
@@ -158,6 +160,26 @@ LE				<=
   *  \n \t \b \f, the result is c.
   *
   */
+\" { 
+	BEGIN(STRING);
+	string_buf_ptr = string_buf; 
+}
+<STRING>\"		{
+	*string_buf_ptr++ = '\0';
+	cool_yylval.symbol = idtable.add_string(string_buf);
+	BEGIN(INITIAL);
+}
+<STRING>.		{ *string_buf_ptr = ; }	
+<STRING><<EOF>>	{ BEGIN(INITIAL); cool_yylval.error_msg = "EOF in string constant."; return (ERROR); }
+<STRING>"\n"	{ *string_buf_ptr++ = '\n'; }
+<STRING>"\t"	{ *string_buf_ptr++ = '\t'; }
+<STRING>"\b"	{ *string_buf_ptr++ = '\b'; }
+<STRING>"\f"	{ *string_buf_ptr++ = '\f'; }
+<STRING>"\0"	{ 
+	BEGIN(INITIAL); 
+	cool_yylval.error_msg = "String contains escaped null character."; 
+	return (ERROR); 
+}
 {WS}        { /*do nothing*/ }
 
 %%
