@@ -111,23 +111,16 @@ LE				<=
 "="         { return '='; }
 "("         { return '('; }
 ")"         { return ')'; }
-"["         { return '['; }
-"]"         { return ']'; }
+[\[\]&>^|!?%'] { cool_yylval.error_msg = yytext; return (ERROR); }
 "."         { return '.'; }
-"&"         { return '&'; }
-"!"         { return '!'; }
 "~"         { return '~'; }
 "-"         { return '-'; }
 "+"         { return '+'; }
 "*"         { return '*'; }
 "/"         { return '/'; }
-"%"         { return '%'; }
 "<"         { return '<'; }
-">"         { return '>'; }
-"^"         { return '^'; }
-"|"         { return '|'; }
-"?"         { return '?'; }
-\n			{ ++curr_lineno; }
+"@"         { return '@'; }
+<INITIAL,COMMENT>\n	{ ++curr_lineno; }
 
  /*
   * Keywords are case-insensitive except for the values true and false,
@@ -165,17 +158,27 @@ LE				<=
 	string_buf_ptr = string_buf; 
 }
 <STRING>\"		{
-	*string_buf_ptr++ = '\0';
+	*string_buf_ptr = '\0';
 	cool_yylval.symbol = idtable.add_string(string_buf);
+	/*cout<<string_buf<<endl;*/
 	BEGIN(INITIAL);
+	return (STR_CONST);
 }
-<STRING>.		{ *string_buf_ptr = ; }	
+<STRING>.		{ 
+	if(string_buf_ptr - string_buf > MAX_STR_CONST) {
+		BEGIN(INITIAL);
+		cool_yylval.error_msg = "String constant too long"; 
+		return (ERROR);
+	}
+	*string_buf_ptr++ = *yytext;
+	
+}	
 <STRING><<EOF>>	{ BEGIN(INITIAL); cool_yylval.error_msg = "EOF in string constant."; return (ERROR); }
-<STRING>"\n"	{ *string_buf_ptr++ = '\n'; }
-<STRING>"\t"	{ *string_buf_ptr++ = '\t'; }
-<STRING>"\b"	{ *string_buf_ptr++ = '\b'; }
-<STRING>"\f"	{ *string_buf_ptr++ = '\f'; }
-<STRING>"\0"	{ 
+<STRING>"\\n"	{ *string_buf_ptr++ = '\n'; }
+<STRING>"\\t"	{ *string_buf_ptr++ = '\t'; }
+<STRING>"\\b"	{ *string_buf_ptr++ = '\b'; }
+<STRING>"\\f"	{ *string_buf_ptr++ = '\f'; }
+<STRING>"\\0"	{ 
 	BEGIN(INITIAL); 
 	cool_yylval.error_msg = "String contains escaped null character."; 
 	return (ERROR); 

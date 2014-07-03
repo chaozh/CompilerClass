@@ -5,5 +5,5 @@
 -- this is test comment
 class A : inherits B {
 	a:Int <- 3;
-	b:String <- "hello world";
+	b:String <- "hello \nworld";
 }
