@@ -172,8 +172,39 @@
     /* Feature list may be empty, but no empty features in list. */
     dummy_feature_list:		/* empty */
     {  $$ = nil_Features(); }
+    | OBJECTID formal_list ':' TYPEID { expr }
+	{ }
+	| OBJECTID ':' TYPEID
+	{ }
+	| OBJECTID ':' TYPEID '<-' expr
+	{ }
+	;
+
+	formal_list	: formal
+	{}
+	| formal_list ',' formal
+	{}
+	;
+	
+	formal: OBJECTID ':' TYPEID
+	{}
+	;
     
-    
+	expr: OBJECTID '<-' expr
+	{ }
+	| expr '.' OBJECTID '(' expr_list ')'
+	{ }
+	| expr '@' TYPEID '.' OBJECTID '(' expr_list ')'
+	{ }
+	| OBJECTID expr_list
+	{ }
+	| IF expr THEN expr ELSE expr FI
+	{ }
+	| WHILE expr LOOP expr POOL
+	{ }
+	| '{' expr_list '}' /* problem here*/
+	{ }
+	| LET OBJECTID ':' TYPEID '<-' expr 
     /* end of grammar */
     %%
     
