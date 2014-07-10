@@ -133,7 +133,12 @@
     %type <program> program
     %type <classes> class_list
     %type <class_> class
-    
+   
+	%type <formals> formal_list
+	%type <formal> formal
+
+	%type <expression> expr
+	%type <expressions>	expr_list
     /* You will want to change the following line. */
     %type <features> dummy_feature_list
     
