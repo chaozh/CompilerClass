@@ -176,21 +176,21 @@
 	{ }
 	| OBJECTID ':' TYPEID
 	{ }
-	| OBJECTID ':' TYPEID '<-' expr
+	| OBJECTID ':' TYPEID ASSIGN expr
 	{ }
 	;
 
 	formal_list	: formal
 	{}
 	| formal_list ',' formal
-	{}
+	{ }
 	;
 	
 	formal: OBJECTID ':' TYPEID
-	{}
+	{ }
 	;
     
-	expr: OBJECTID '<-' expr
+	expr: OBJECTID ASSIGN expr
 	{ }
 	| expr '.' OBJECTID '(' expr_list ')'
 	{ }
@@ -202,9 +202,68 @@
 	{ }
 	| WHILE expr LOOP expr POOL
 	{ }
-	| '{' expr_list '}' /* problem here*/
+	| '{' expr_semi_list '}' /* problem here*/
 	{ }
-	| LET OBJECTID ':' TYPEID '<-' expr 
+	| LET OBJECTID ':' TYPEID may_assign_expr may_assign_expr_list IN expr
+	{ }
+	| CASE expr OF cases_list ESAC
+	{ }
+	| NEW TYPEID
+	{ }
+	| ISVOID expr
+	{ }
+	| expr '+' expr
+	{ }
+	| expr '-' expr
+	{ }
+	| expr '*' expr
+	{ }
+	| expr '/' expr
+	{ }
+	| '~' expr
+	{ }
+	| expr '<' expr
+	{ }
+	| expr LE expr
+	{ }
+	| expr '=' expr
+	{ }
+	| NOT expr
+	{ }
+	| '(' expr ')'
+	{ }
+	| OBJECTID
+	{ }
+	| INT_CONST
+	{ }
+	| STR_CONST
+	{ }
+	| BOOL_CONST
+	{ }
+	;
+	
+	cases_list: OBJECTID ':' TYPEID DARROW expr ';'
+	{ }
+	| cases_list OBJECTID ':' TYPEID DARROW expr ';'
+	{ }
+	; 
+	
+	may_assign_expr:/*empty*/
+	{ }
+	| ASSIGN expr
+	{ }
+	;
+
+	may_assign_expr_list:/*empty*/
+	{ }
+	| may_assign_expr_list ',' ID ':' TYPEID may_assign_expr
+	{ }
+ 
+	expr_semi_list: expr ';'
+	{ }
+	| expr_semi_list expr ';'
+	{ }
+	;
     /* end of grammar */
     %%
     
