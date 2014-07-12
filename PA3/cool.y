@@ -139,10 +139,13 @@
 
 	%type <expression> expr
 	%type <expressions>	expr_list
+	%type <expressions> expr_semi_list
     /* You will want to change the following line. */
     %type <features> feature_list
 	%type <feature> feature
-    
+   
+	%type <cases> cases_list
+	%type <case_> case 
     /* Precedence declarations go here. */
     
     
@@ -177,8 +180,8 @@
 	{  $$ = append_Features($1, single_Feature($2)); }
 	;
 
-	feature: OBJECTID formal_list ':' TYPEID '{' expr '}'
-	{  $$ = method($1, $2, $4, $6); }
+	feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
+	{  $$ = method($1, $3, $6, $8); }
 	| OBJECTID ':' TYPEID
 	{  $$ = attr($1, $3, no_expr()); }
 	| OBJECTID ':' TYPEID ASSIGN expr
@@ -188,7 +191,7 @@
 	formal_list	: formal
 	{ $$ = single_Formal($1); }
 	| formal_list ',' formal
-	{ $$ = append_Formals($1, $3); }
+	{ $$ = append_Formals($1, single_Formal($3)); }
 	;
 	
 	formal: OBJECTID ':' TYPEID
@@ -196,61 +199,65 @@
 	;
     
 	expr: OBJECTID ASSIGN expr
-	{ }
+	{ $$ = assign($1, $3); }
 	| expr '.' OBJECTID '(' expr_list ')'
-	{ }
+	{ $$ = dispatch($1, $3, $5); }
 	| expr '@' TYPEID '.' OBJECTID '(' expr_list ')'
-	{ }
-	| OBJECTID expr_list
-	{ }
+	{ $$ = static_dispatch($1, $3, $5, $7); }
+	| OBJECTID '(' expr_list ')' /*short for self.method(args) */
+	{ $$ = dispatch(idtable.addString("self"), $1, $3); }
 	| IF expr THEN expr ELSE expr FI
-	{ }
+	{ $$ = cond($2, $4, $6); }
 	| WHILE expr LOOP expr POOL
-	{ }
-	| '{' expr_semi_list '}' /* problem here*/
-	{ }
-	| LET OBJECTID ':' TYPEID may_assign_expr may_assign_expr_list IN expr
-	{ }
-	| CASE expr OF cases_list ESAC
-	{ }
+	{ $$ = loop($2, $4); }
+	| '{' expr_semi_list '}'
+	{ $$ = block($2); }
+	| LET OBJECTID ':' TYPEID may_assign_expr may_assign_expr_list IN expr /* problem here */
+	{ $$ = let($2, $4, $5, $6); }
+	| CASE expr OF cases_list ESAC /* problem here */
+	{ $$ = typease($2, $4); }
 	| NEW TYPEID
-	{ }
+	{ $$ = new_($2); }
 	| ISVOID expr
-	{ }
+	{ $$ = isvoid($2); }
 	| expr '+' expr
-	{ }
+	{ $$ = plus($1, $3); }
 	| expr '-' expr
-	{ }
+	{ $$ = sub($1, $3); }
 	| expr '*' expr
-	{ }
+	{ $$ = mul($1, $3); }
 	| expr '/' expr
-	{ }
+	{ $$ = divide($1, $3); }
 	| '~' expr
-	{ }
+	{ $$ = neg($2); }
 	| expr '<' expr
-	{ }
+	{ $$ = lt($1, $3); }
 	| expr LE expr
-	{ }
+	{ $$ = leq($1, $3); }
 	| expr '=' expr
-	{ }
+	{ $$ = eq($1, $3); }
 	| NOT expr
-	{ }
+	{ $$ = comp($2); }
 	| '(' expr ')'
-	{ }
+	{ $$ = $2; }
 	| OBJECTID
-	{ }
+	{ $$ = object($1); }
 	| INT_CONST
-	{ }
+	{ $$ = int_const($1); }
 	| STR_CONST
-	{ }
+	{ $$ = string_const($1); }
 	| BOOL_CONST
-	{ }
+	{ $$ = bool_const($1); }
 	;
 	
-	cases_list: OBJECTID ':' TYPEID DARROW expr ';'
-	{ }
-	| cases_list OBJECTID ':' TYPEID DARROW expr ';'
-	{ }
+	cases_list: case 
+	{ $$ = single_Cases($1); }
+	| cases_list case 
+	{ $$ = append_Cases($1, single_Cases($2))}
+	;
+
+	case: OBJECTID ':' TYPEID DARROW expr ';'
+	{ $$ = branch($1, $3, $5); }
 	; 
 	
 	may_assign_expr:/*empty*/
@@ -266,10 +273,17 @@
 	;
  
 	expr_semi_list: expr ';'
-	{ }
+	{ $$ = single_Expressions($1); }
 	| expr_semi_list expr ';'
-	{ }
+	{ $$ = append_Expressions($1, single_Expressions($2)); }
 	;
+
+	expr_list: expr
+	{ $$ = single_Expressions($1); }
+	| expr_list ',' expr
+	{ $$ = append_Expressions($1, single_Expressions($3)); }
+	;
+
     /* end of grammar */
     %%
     
