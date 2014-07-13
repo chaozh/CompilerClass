@@ -187,21 +187,23 @@
     feature_list:		/* empty */
     {  $$ = nil_Features(); }
 	| feature_list feature
-	{  $$ = append_Features($1, single_Feature($2)); }
+	{  $$ = append_Features($1, single_Features($2)); }
 	;
 
-	feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
+	feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' ';'
 	{  $$ = method($1, $3, $6, $8); }
-	| OBJECTID ':' TYPEID
+	| OBJECTID ':' TYPEID ';'
 	{  $$ = attr($1, $3, no_expr()); }
-	| OBJECTID ':' TYPEID ASSIGN expr
+	| OBJECTID ':' TYPEID ASSIGN expr ';'
 	{  $$ = attr($1, $3, $5); }
 	;
 
-	formal_list	: formal
-	{ $$ = single_Formal($1); }
+	formal_list	: 
+	{ $$ = nil_Formals(); }
+	| formal
+	{ $$ = single_Formals($1); }
 	| formal_list ',' formal
-	{ $$ = append_Formals($1, single_Formal($3)); }
+	{ $$ = append_Formals($1, single_Formals($3)); }
 	;
 	
 	formal: OBJECTID ':' TYPEID
@@ -215,7 +217,7 @@
 	| expr '@' TYPEID '.' OBJECTID '(' expr_list ')'
 	{ $$ = static_dispatch($1, $3, $5, $7); }
 	| OBJECTID '(' expr_list ')' /*short for self.method(args) */
-	{ $$ = dispatch(idtable.addString("self"), $1, $3); }
+	{ $$ = dispatch(object(idtable.add_string("self")), $1, $3); }
 	| IF expr THEN expr ELSE expr FI
 	{ $$ = cond($2, $4, $6); }
 	| WHILE expr LOOP expr POOL
@@ -225,7 +227,7 @@
 	| LET let_expr_list
 	{ $$ = $2; }
 	| CASE expr OF case_list ESAC
-	{ $$ = typease($2, $4); }
+	{ $$ = typcase($2, $4); }
 	| NEW TYPEID
 	{ $$ = new_($2); }
 	| ISVOID expr
@@ -263,7 +265,7 @@
 	case_list: case 
 	{ $$ = single_Cases($1); }
 	| case_list case 
-	{ $$ = append_Cases($1, single_Cases($2))}
+	{ $$ = append_Cases($1, single_Cases($2)); }
 	;
 
 	case: OBJECTID ':' TYPEID DARROW expr ';'
