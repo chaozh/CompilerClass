@@ -156,6 +156,9 @@
 	%left '~'
     %left '@'
 	%left '.'
+
+	%nonassoc LET
+	%nonassoc IN
     %%
     /* 
     Save the root of the abstract syntax tree in a global variable.
@@ -267,17 +270,17 @@
 	{ $$ = branch($1, $3, $5); }
 	; 
 
-	let_expr_list: OBJECT ':' TYPEID ASSIGN expr ',' let_expr_list
+	let_expr_list: OBJECTID ':' TYPEID ASSIGN expr ',' let_expr_list
 	{ $$ = let($1, $3, $5, $7); }
-	| OBJECT ':' TYPEID ',' let_expr_list
+	| OBJECTID ':' TYPEID ',' let_expr_list
 	{ $$ = let($1, $3, no_expr(), $5); }
 	| last_let_expr
 	{ $$ = $1; }
 	;
 
-	last_let_expr: OBJECT ':' TYPEID ASSIGN expr IN expr	
+	last_let_expr: OBJECTID ':' TYPEID ASSIGN expr IN expr	
 	{ $$ = let($1, $3, $5, $7); }
-	| OBJECT ':' TYPEID IN expr
+	| OBJECTID ':' TYPEID IN expr
 	{ $$ = let($1, $3, no_expr(), $5); }
 	;
 	
