@@ -138,17 +138,24 @@
 	%type <formal> formal
 
 	%type <expression> expr
-	%type <expressions>	expr_list
-	%type <expressions> expr_semi_list
+	%type <expression> let_expr_list last_let_expr
+	%type <expressions>	expr_list expr_semi_list
     /* You will want to change the following line. */
     %type <features> feature_list
 	%type <feature> feature
    
-	%type <cases> cases_list
+	%type <cases> case_list
 	%type <case_> case 
     /* Precedence declarations go here. */
-    
-    
+	%right ASSIGN
+	%left NOT    
+	%nonassoc LE '<' '='  
+	%left '+' '-'
+	%left '*' '/'
+	%left ISVOID
+	%left '~'
+    %left '@'
+	%left '.'
     %%
     /* 
     Save the root of the abstract syntax tree in a global variable.
@@ -212,9 +219,9 @@
 	{ $$ = loop($2, $4); }
 	| '{' expr_semi_list '}'
 	{ $$ = block($2); }
-	| LET OBJECTID ':' TYPEID may_assign_expr may_assign_expr_list IN expr /* problem here */
-	{ $$ = let($2, $4, $5, $6); }
-	| CASE expr OF cases_list ESAC /* problem here */
+	| LET let_expr_list
+	{ $$ = $2; }
+	| CASE expr OF case_list ESAC
 	{ $$ = typease($2, $4); }
 	| NEW TYPEID
 	{ $$ = new_($2); }
@@ -250,28 +257,30 @@
 	{ $$ = bool_const($1); }
 	;
 	
-	cases_list: case 
+	case_list: case 
 	{ $$ = single_Cases($1); }
-	| cases_list case 
+	| case_list case 
 	{ $$ = append_Cases($1, single_Cases($2))}
 	;
 
 	case: OBJECTID ':' TYPEID DARROW expr ';'
 	{ $$ = branch($1, $3, $5); }
 	; 
-	
-	may_assign_expr:/*empty*/
-	{ }
-	| ASSIGN expr
-	{ }
+
+	let_expr_list: OBJECT ':' TYPEID ASSIGN expr ',' let_expr_list
+	{ $$ = let($1, $3, $5, $7); }
+	| OBJECT ':' TYPEID ',' let_expr_list
+	{ $$ = let($1, $3, no_expr(), $5); }
+	| last_let_expr
+	{ $$ = $1; }
 	;
 
-	may_assign_expr_list:/*empty*/
-	{ }
-	| may_assign_expr_list ',' ID ':' TYPEID may_assign_expr
-	{ }
+	last_let_expr: OBJECT ':' TYPEID ASSIGN expr IN expr	
+	{ $$ = let($1, $3, $5, $7); }
+	| OBJECT ':' TYPEID IN expr
+	{ $$ = let($1, $3, no_expr(), $5); }
 	;
- 
+	
 	expr_semi_list: expr ';'
 	{ $$ = single_Expressions($1); }
 	| expr_semi_list expr ';'
