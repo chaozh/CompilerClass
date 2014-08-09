@@ -181,6 +181,8 @@
     stringtable.add_string(curr_filename)); }
     | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';'
     { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
+    | error ';'
+    { yyerrok; }
     ;
     
     /* Feature list may be empty, but no empty features in list. */
@@ -196,7 +198,9 @@
 	{  $$ = attr($1, $3, no_expr()); }
 	| OBJECTID ':' TYPEID ASSIGN expr ';'
 	{  $$ = attr($1, $3, $5); }
-	;
+	| error ';'
+    { yyerrok; }
+    ;
 
 	formal_list	: 
 	{ $$ = nil_Formals(); }
@@ -278,7 +282,9 @@
 	{ $$ = let($1, $3, no_expr(), $5); }
 	| last_let_expr
 	{ $$ = $1; }
-	;
+	| error ',' let_expr_list
+    { yyerrok; }
+    ;
 
 	last_let_expr: OBJECTID ':' TYPEID ASSIGN expr IN expr	
 	{ $$ = let($1, $3, $5, $7); }
