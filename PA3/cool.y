@@ -140,13 +140,13 @@
 	%type <expression> expr
 	%type <expression> let_expr_list last_let_expr
 	%type <expressions>	expr_list expr_semi_list
-    /* You will want to change the following line. */
-    %type <features> feature_list
+  /* You will want to change the following line. */
+  %type <features> feature_list
 	%type <feature> feature
    
 	%type <cases> case_list
 	%type <case_> case 
-    /* Precedence declarations go here. */
+  /* Precedence declarations go here. */
 	%right ASSIGN
 	%left NOT    
 	%nonassoc LE '<' '='  
@@ -154,11 +154,12 @@
 	%left '*' '/'
 	%left ISVOID
 	%left '~'
-    %left '@'
+  %left '@'
 	%left '.'
 
 	%nonassoc LET
 	%nonassoc IN
+    
     %%
     /* 
     Save the root of the abstract syntax tree in a global variable.
@@ -181,7 +182,7 @@
     stringtable.add_string(curr_filename)); }
     | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';'
     { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
-    | error ';'
+    | CLASS error ';'
     { yyerrok; }
     ;
     
@@ -190,7 +191,7 @@
     {  $$ = nil_Features(); }
 	| feature_list feature
 	{  $$ = append_Features($1, single_Features($2)); }
-	;
+  ;
 
 	feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' ';'
 	{  $$ = method($1, $3, $6, $8); }
@@ -283,8 +284,8 @@
 	| last_let_expr
 	{ $$ = $1; }
 	| error ',' let_expr_list
-    { yyerrok; }
-    ;
+  { yyerrok; }
+  ;
 
 	last_let_expr: OBJECTID ':' TYPEID ASSIGN expr IN expr	
 	{ $$ = let($1, $3, $5, $7); }
@@ -296,6 +297,7 @@
 	{ $$ = single_Expressions($1); }
 	| expr_semi_list expr ';'
 	{ $$ = append_Expressions($1, single_Expressions($2)); }
+  | expr_semi_list error ';' /*do nothing, move next*/
 	;
 
 	expr_list: expr
