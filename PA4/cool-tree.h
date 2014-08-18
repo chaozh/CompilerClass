@@ -11,6 +11,24 @@
 
 #include "tree.h"
 #include "cool-tree.handcode.h"
+//user add
+#include <map>
+#include <utility>
+#include <symtab.h>
+
+class ClassTable; // Defined in semant.h
+// Environment struct <O, M, C> used in type checking
+typedef struct env_s env_t;
+struct env_s {
+    // Object map O<id name, id type>
+    SymbolTable<Symbol, Symbol> *om;
+    // Contains the class map and inheritance graph
+    // These are used for class and method inheritance
+    // See semant.h for more details
+    ClassTable *ct;
+    // Current class C
+    Class_ curr;
+};
 
 
 // define the class for phylum

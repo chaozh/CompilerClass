@@ -24,6 +24,14 @@ private:
   int semant_errors;
   void install_basic_classes();
   ostream& error_stream;
+  //user add
+  //Object map
+  SymbolTable<char *, int> *om; //not conviniant
+  std::map<Symbol, Class_> class_map; // Maps class names to the class pointers
+  std::map<Symbol, Symbol> inheritance_graph; // Maps child class to parent
+  // current class
+  Class_ curr;
+
 
 public:
   ClassTable(Classes);
@@ -31,6 +39,11 @@ public:
   ostream& semant_error();
   ostream& semant_error(Class_ c);
   ostream& semant_error(Symbol filename, tree_node *t);
+
+  //user add
+  void add_to_class_table(Class_ c);
+  bool is_valid();
+  Symbol lub(Symbol c1, Symbol c2);
 };
 
 

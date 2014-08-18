@@ -86,7 +86,13 @@ static void initialize_constants(void)
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
 
     /* Fill this in */
-
+    // Construct very beginning base calsses 
+    install_basic_classes();
+    // Use List API to go through 
+    for(int i = classes->first(); classes->more(i); i = classes->next(i)){
+    	add_to_class_table(classes->nth(i));
+    }
+   
 }
 
 void ClassTable::install_basic_classes() {
@@ -122,6 +128,7 @@ void ClassTable::install_basic_classes() {
 					       single_Features(method(type_name, nil_Formals(), Str, no_expr()))),
 			       single_Features(method(copy, nil_Formals(), SELF_TYPE, no_expr()))),
 	       filename);
+	add_to_class_table(Object_class);
 
     // 
     // The IO class inherits from Object. Its methods are
@@ -142,7 +149,8 @@ void ClassTable::install_basic_classes() {
 										      SELF_TYPE, no_expr()))),
 					       single_Features(method(in_string, nil_Formals(), Str, no_expr()))),
 			       single_Features(method(in_int, nil_Formals(), Int, no_expr()))),
-	       filename);  
+	       filename); 
+	add_to_class_table(IO_class);
 
     //
     // The Int class has no methods and only a single attribute, the
@@ -153,12 +161,15 @@ void ClassTable::install_basic_classes() {
 	       Object,
 	       single_Features(attr(val, prim_slot, no_expr())),
 	       filename);
+	add_to_class_table(Int_class); 
 
     //
     // Bool also has only the "val" slot.
     //
     Class_ Bool_class =
 	class_(Bool, Object, single_Features(attr(val, prim_slot, no_expr())),filename);
+	add_to_class_table(Bool_class); 
+
 
     //
     // The class Str has a number of slots and operations:
@@ -188,6 +199,7 @@ void ClassTable::install_basic_classes() {
 						      Str, 
 						      no_expr()))),
 	       filename);
+	add_to_class_table(Str_class);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -222,6 +234,82 @@ ostream& ClassTable::semant_error()
     return error_stream;
 } 
 
+bool ClassTable::classe_exists(Symbol c) {
+	return (inheritance_graph.count(c) > 0);
+}
+
+Class_ ClassTable::get_class(Symbol class_name) {
+	return class_map[class_name];
+}
+
+/*
+ * Add the class to the class map and the inheritance graph
+ */
+void ClassTable::add_to_class_table(Class_ c)
+{
+	Symbol name = c->get_name();
+	Symbol parent = c->get_parent();
+	if (parent == Bool || parent == SELF_TYPE || parent == Str) {
+		ostream& err_stream = semant_error(c);
+		err_stream<<"Class " << name << " cannot inherit class " << parent << ".\n";
+	}
+	else if (name == SELF_TYPE) {
+		ostream& err_stream = semant_error(c);
+		err_stream << "Redefinition of basic class " << name << ".\n";
+	}
+	else if (class_map.count(name) == 0 && inheritance_graph.count(name) == 0) {
+		//record
+		class_map[name] = c;
+		inheritance_graph[name] = parent;
+	}
+	else {
+		ostream& err_stream = semant_error();
+		err_stream << "Class " << name << " has already been defined.\n";
+	}
+}
+
+/*
+ * Validates the inheritance graph by checking that:
+ *   1. Every parent class is defined.
+ *   2. There are no cycles.
+ *   3. The class Main is defined.
+ */
+bool ClassTable::is_valid() 
+{
+	bool is_main_defined = false;
+	for (std::map<Symbol, Symbol>::interator iter = inheritance_graph.begin();
+		iter != inheritance_graph.end(); ++iter) {
+		//use map
+		Symbol child = iter->first;
+		Symbol parent = iter->second;
+		if (child == Main)
+			is_main_defined = true;
+		while(parent != No_class) {
+			if (parent == child) {
+				//Error - cycle detected
+				ostream& err_stream = semant_error(class_map[child]);
+				err_stream << "Class " << child << " inherits from itself.\n";
+				return false;
+			}
+			else if (inheritance_graph.count(parent) == 0){
+				//Error - parent not found
+				ostream& err_stream = semant_error(class_map[child]);
+				err_stream << "Class " << child << " inherits from undefined class"
+							<< parent << ".\n";
+				return false;
+			}
+			else
+				parent = inheritance_graph[parent]; //bottom up
+		}
+	}
+	if(is_main_defined == false) {
+		ostream& err_stream = semant_error(class_map[child]);
+		err_stream << "Class Main is not defined.\n";
+		return false;
+	}
+	return true;
+}
+
 
 
 /*   This is the entry point to the semantic checker.
@@ -241,10 +329,28 @@ void program_class::semant()
 {
     initialize_constants();
 
-    /* ClassTable constructor may do some semantic analysis */
+    /* ClassTable constructor may do some semantic analysis, first pass*/
     ClassTable *classtable = new ClassTable(classes);
 
-    /* some semantic analysis code may go here */
+    /* some semantic analysis code may go here, second pass */
+    if (!classtable->errors() && classtable->is_valid()){
+    	env_t env;
+    	env.om = new SymbolTable<Symbol, Symbol>();
+    	env.curr = NULL;
+    	env.ct = classtable;
+
+    	//type check in every class
+    	for (int i = classes->first(); classes->more(i); i = classes->next(i)){
+    		env.om->enterscope();
+    		env.curr = classes->nth(i);
+    		//
+    		env.curr->init_class(env);
+    		
+
+    		env.om->exitscope();
+    	}
+    }
+    
 
     if (classtable->errors()) {
 	cerr << "Compilation halted due to static semantic errors." << endl;
