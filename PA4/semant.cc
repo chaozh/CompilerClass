@@ -343,9 +343,10 @@ void program_class::semant()
     	for (int i = classes->first(); classes->more(i); i = classes->next(i)){
     		env.om->enterscope();
     		env.curr = classes->nth(i);
-    		//
+    		// add class info especailly attr info into symbol table
     		env.curr->init_class(env);
-    		
+            // type check in each class
+    		env.curr->type_check(env);
 
     		env.om->exitscope();
     	}
@@ -358,4 +359,44 @@ void program_class::semant()
     }
 }
 
+/* init symbol table */
+void class__class::init_class(type_env_t env) {
+    if (this->name != Object) { //?
+        env.ct->get_class(this->parent)->init_class(env);   
+    }
+    //only deal with attr
+    for (int i = features->first(); features->more(i); features->next(i)) {
+        features->nth(i)->add_to_environment(env);
+    }
+}
 
+void method_class::add_to_environment(type_env_t env) { /* do nothing */ }
+void attr_class::add_to_environment (type_env_t env) {
+    if (env.om->probe(this->name) == NULL) 
+        env.om->addid(this->name, &(this->type_decl));
+    else{
+        ostream& err_stream = env.ct->semant_error(env.curr->get_filename(), this);
+        err_stream << "Unable to add attribute " << name
+                   << " to already defined object map.\n";
+    }
+}
+
+/* type check */
+Class_ class__class::type_check(type_env_t env) {
+    for (int i = features->first(); features->more(i); features->next(i)) {
+        features->nth(i)->type_check(env);
+    }
+    return this;
+}
+
+Feature attr_class::type_check(type_env_t env) {
+    env.om->enterscope();
+    Symbol curr_class = env.curr->get_name();
+    env.om->
+    env.om->exitscope();
+    return this;   
+}
+
+Feature method_class::type_check(type_env_t env) {
+
+}
